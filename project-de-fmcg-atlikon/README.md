@@ -118,31 +118,10 @@ project-de-fmcg-atlikon/
 
 ---
 
-## 7. Setup & How to Run
 
-> This project runs inside **Databricks** (Free Edition works). Nothing needs to be installed locally.
 
-1. **Create an S3 bucket** and upload the contents of `0_data/2_child_company/` into it, keeping the same folder layout (`customers/`, `products/`, `gross_price/`, `orders/landing/`). Two loads are provided: `full_load/orders/landing` (Jul–Nov historical) and `incremental_load/orders` (Dec, daily files) — upload the incremental files to `orders/landing/` on your bucket only once you're ready to simulate daily arrivals.
-2. **Connect the bucket to Databricks** as an external location (AWS Quick Start / CloudFormation, or a Unity Catalog storage credential).
-3. **Import `1_codes/`** into your Databricks workspace (Repos / Git folders is easiest — point it at this repo directly).
-4. Update two things to match your environment:
-   - The S3 path in each notebook's widgets cell — replace `s3://sportsbar-final/...` with your bucket name.
-   - The `%run /Workspace/consolidated_pipeline/1_setup/utilities` line in every notebook — point it at wherever you imported `1_codes/1_setup/utilities` in your workspace.
-5. **Run setup**, in order:
-   - `1_setup/setup_catalog.ipynb` — creates the `fmcg` catalog and `bronze`/`silver`/`gold` schemas.
-   - `1_setup/dim_date_table_creation.ipynb` — builds `fmcg.gold.dim_date`.
-6. **Seed the parent's Gold layer** with Atlon's existing baseline: load `0_data/1_parent_company/full_load/*.csv` into `fmcg.gold.dim_customers`, `dim_products`, `dim_gross_price`, and `fact_orders` (these represent Atlon's already-mature pipeline output — the starting point everything else merges into).
-7. **Run the dimension pipelines**, in order: `2_dimension_data_processing/1_customers_data_processing.ipynb` → `2_products_data_processing.ipynb` → `3_pricing_data_processing.ipynb`. Each one runs Bronze → Silver → Gold → Merge-into-parent for Sports Bar's customer, product, and pricing data.
-8. **Run the historical fact load**: `3_fact_data_processing/1_full_load_fact.ipynb` (processes the 5 months of orders sitting in `orders/landing/`, aggregates to monthly grain, and merges into `fmcg.gold.fact_orders`).
-9. **Simulate daily loads**: drop one file at a time from `0_data/2_child_company/incremental_load/orders/` into your bucket's `orders/landing/`, then run `3_fact_data_processing/2_incremental_load_fact.ipynb`. This uses a staging-table pattern so only the affected month is recomputed and re-merged.
-10. **Build the serving view**: run the SQL in `2_dashboarding/denormalise_table_query_fmcg.txt` to create `fmcg.gold.vw_fact_orders_enriched`.
-11. **Dashboard / Genie**: point a Databricks SQL dashboard (or Genie AI) at `vw_fact_orders_enriched`. See `2_dashboarding/dashboard_preview.png` for a reference layout, and try Genie prompts like *"top 5 products by revenue"* or *"quarterly revenue trend by channel"*.
 
-**Recommended orchestration (Databricks Workflows):** chain the tasks `customer_data_processing → products_data_processing → gross_price_data_processing → incremental_load_fact` in that order (pricing depends on products; the fact load depends on both dimensions), on a nightly cron schedule, with email notification on failure. Pass `catalog` / `data_source` as job parameters so the same notebook can be reused across sources.
-
----
-
-## 8. Dashboard
+## 7. Dashboard
 
 ![Dashboard preview](2_dashboarding/dashboard_preview.png)
 
@@ -161,7 +140,7 @@ The dashboard combines both companies' data behind a single set of filters (Year
 - No AWS credentials or secrets are committed to this repo — S3 access is configured through Databricks' own external-location/IAM setup, not hardcoded keys.
 - Bucket names and workspace paths in the notebooks are placeholders from the original build — update them per step 4 above before running.
 - All CSVs under `0_data/` are the project's own sample/synthetic dataset, safe to keep in a public repo.
-
+- All these things are result of learning from various youtube channels.
 ---
 
 ## 10. License
